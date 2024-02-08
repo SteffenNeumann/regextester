@@ -7,37 +7,38 @@
     <link rel="stylesheet" href="https://pyscript.net/releases/2022.12.1/pyscript.css" />
     <script defer src="https://pyscript.net/releases/2022.12.1/pyscript.js"></script>
     <style>
+        /* Your existing styles */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             justify-content: center;
-            align-items: start; /* Align items at the start */
+            align-items: start;
             height: 100vh;
             margin: 50px;
             background-color: #f5f5f5;
-            padding-top: 50px; /* Add some padding on top */
+            padding-top: 50px;
         }
         .main-container {
             display: flex;
-            justify-content: space-between; /* Distribute space between children */
-            min-width: 700px; /* Occupying less than the full viewport width */
-            max-width: 1200px; /* Maximum width */
-            gap: 20px; /* Gap between the containers */
+            justify-content: space-between;
+            min-width: 700px;
+            max-width: 1200px;
+            gap: 20px;
         }
-        .input-container, .adjustments-container, .info-container {
+        .input-container, .adjustments-container, .info-container, .replacement-container {
             background-color: #ffffff;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .input-container {
-            flex-grow: 1; /* Allows the input container to grow */
+            flex-grow: 1;
         }
         .right-container {
             display: flex;
             flex-direction: column;
-			gap: 20px;
-            width: 300px; /* Fixed width for the right side containers */
+            gap: 20px;
+            width: 300px;
         }
         .editable, select, #out {
             border: 2px solid #007bff;
@@ -45,10 +46,9 @@
             padding: 10px;
             margin: 10px 0;
             width: calc(100% - 24px);
-            height: 70px; /* Fixed height */
-            overflow: auto;
+            height: 140px;
         }
-        #mypattern{
+        #mypattern, #replacement {
             height: 25px;
         }
         .adjustments {
@@ -59,11 +59,11 @@
         }
         select {
             padding: 5px;
-            height: auto; /* Adjust height */
-            width: auto; /* Ensure the selects don't stretch */
+            height: auto;
+            width: auto;
         }
         #out {
-            background-color: #f2f2f2;
+            background-color: #f5f5f5;
         }
         button {
             background-color: #007bff;
@@ -83,7 +83,7 @@
             color: black;
         }
         ul {
-            list-style-type: none; /* Remove bullets */
+            list-style-type: none;
             padding: 0;
         }
     </style>
@@ -99,8 +99,9 @@
             <div id="out" class="editable"></div>
             <button id="evaluateButton">Evaluate Regex</button>
         </div>
-        <div class="right-container"> <!-- New container for adjustments and syntax guide -->
+        <div class="right-container">
             <div class="adjustments-container">
+                <!-- Your existing adjustments code -->
                 <div class="adjustments">
                     <label for="casesensitive">Case Sensitive:</label>
                     <select id="casesensitive">
@@ -114,7 +115,13 @@
                     </select>
                 </div>
             </div>
+            <!-- Replacement Container -->
+            <div class="replacement-container">
+                <label for="replacement">Replacement:</label>
+                <div id="replacement" class="editable" contenteditable="true"></div>
+            </div>
             <div class="info-container">
+                <!-- Your existing Regex Syntax Guide code -->
                 <strong>Regex Syntax Guide:</strong>
                 <ul>
                     <li><code>\d</code> - Any digit</li>
@@ -131,35 +138,38 @@
             </div>
         </div>
     </div>
-    
     <py-script>
         import re
         from pyodide import create_proxy
-        
+
         def evaluate_regex(*args, **kwargs):
             pattern = Element("mypattern").element.innerHTML
             s = Element("teststring").element.innerHTML
             case_sensitive = Element("casesensitive").element.value
             global_search = Element("globalSearch").element.value
+            replacement = Element("replacement").element.innerHTML
             
             flags = 0
             if case_sensitive == 'no':
                 flags |= re.IGNORECASE
-            
-            def wrap_match(match):
-                return f'<span class="highlight">{match.group(0)}</span>'
-            
+
             if global_search == 'yes':
-                highlighted_text = re.sub(pattern, wrap_match, s, flags=flags)
+                if len(replacement.strip()) == 0:
+                    highlighted_text = re.sub(pattern, lambda m: f'<span class="highlight">{m.group(0)}</span>', s, flags=flags)
+                else:
+                    highlighted_text = re.sub(pattern, replacement, s, flags=flags)
             else:
                 match = re.search(pattern, s, flags=flags)
                 if match:
-                    highlighted_text = s[:match.start()] + wrap_match(match) + s[match.end():]
+                    if len(replacement.strip()) == 0:
+                        highlighted_text = s[:match.start()] + f'<span class="highlight">{match.group(0)}</span>' + s[match.end():]
+                    else:
+                        highlighted_text = s[:match.start()] + replacement + s[match.end():]
                 else:
-                    highlighted_text = s  # If no match, return original string
+                    highlighted_text = s
             
             Element("out").element.innerHTML = highlighted_text
-        
+
         evaluate_button_proxy = create_proxy(evaluate_regex)
         Element("evaluateButton").element.onclick = evaluate_button_proxy
     </py-script>
