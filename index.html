@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Enhanced Regex Highlighter</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2022.12.1/pyscript.css" />
+    <script defer src="https://pyscript.net/releases/2022.12.1/pyscript.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            flex-direction: column;
+        }
+        .container {
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+        }
+        .input-container, .info-container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+        }
+        .editable, select, #out {
+            border: 2px solid #007bff;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            width: calc(100% - 24px);
+            height: 50px; /* Fixed height */
+            overflow: auto;
+        }
+		#mypattern{
+		height: 25px;
+		}
+		
+		
+        .adjustments {
+            display: flex;
+            justify-content: start;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+        select {
+            padding: 5px;
+            height: auto; /* Adjust height to be smaller */
+        }
+        #out {
+            background-color: #f2f2f2;
+        }
+        button {
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .highlight {
+            background-color: yellow;
+            color: black;
+        }
+        ul {
+            list-style-type: none; /* Remove bullets */
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="input-container">
+            <div class="adjustments">
+                <label for="casesensitive">Case Sensitive:</label>
+                <select id="casesensitive">
+                    <option value="yes">Yes</option>
+                    <option value="no" selected>No</option>
+                </select>
+                <label for="globalSearch">Global Search:</label>
+                <select id="globalSearch">
+                    <option value="yes" selected>Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+            <label for="mypattern">Regex Pattern:</label>
+            <div id="mypattern" class="editable" contenteditable="true"></div>
+            <label for="teststring">Test String:</label>
+            <div id="teststring" class="editable" contenteditable="true"></div>
+			<label for="out" class="output-label">Output (Matches highlighted):</label>
+            <div id="out" class="editable"></div>
+            <button id="evaluateButton">Evaluate Regex</button>
+        </div>
+        <div class="info-container">
+            <strong>Regex Syntax Guide:</strong>
+            <ul>
+                <li><code>\d</code> - Any digit</li>
+                <li><code>\w</code> - Any word character</li>
+                <li><code>.</code> - Any character except newline</li>
+                <li><code>*</code> - Zero or more repetitions</li>
+                <li><code>+</code> - One or more repetitions</li>
+                <li><code>?</code> - Zero or one repetition</li>
+                <li><code>{n}</code> - Exactly n repetitions</li>
+                <li><code>{n,}</code> - n or more repetitions</li>
+                <li><code>{,m}</code> - Up to m repetitions</li>
+                <li><code>{n,m}</code> - Between n and m repetitions</li>
+            </ul>
+        </div>
+    </div>
+
+    <py-script>
+        import re
+        from pyodide import create_proxy
+
+        def evaluate_regex(*args, **kwargs):
+            pattern = Element("mypattern").element.innerHTML
+            s = Element("teststring").element.innerHTML
+            case_sensitive = Element("casesensitive").element.value
+            global_search = Element("globalSearch").element.value
+            
+            flags = 0
+            if case_sensitive == 'no':
+                flags |= re.IGNORECASE
+
+            def wrap_match(match):
+                return f'<span class="highlight">{match.group(0)}</span>'
+            
+            if global_search == 'yes':
+                highlighted_text = re.sub(pattern, wrap_match, s, flags=flags)
+            else:
+                match = re.search(pattern, s, flags=flags)
+                if match:
+                    highlighted_text = s[:match.start()] + wrap_match(match) + s[match.end():]
+                else:
+                    highlighted_text = s  # If no match, return original string
+
+            Element("out").element.innerHTML = highlighted_text
+
+        evaluate_button_proxy = create_proxy(evaluate_regex)
+        Element("evaluateButton").element.onclick = evaluate_button_proxy
+    </py-script>
+</body>
+</html>
